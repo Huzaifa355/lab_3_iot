@@ -9,7 +9,7 @@ import time
 DHT_PIN = 4  # DHT22 data pin
 button = Pin(0, Pin.IN, Pin.PULL_UP)
 # Initialize DHT22 sensor
-dht_sensor = dht.DHT22(machine.Pin(DHT_PIN)) # change DHT11 fr physical device
+dht_sensor = dht.DHT11(machine.Pin(DHT_PIN)) # change DHT11 fr physical device
 
 # Initialize OLED display
 i2c = machine.I2C(scl=machine.Pin(9), sda=machine.Pin(8))
@@ -62,7 +62,7 @@ while True:
 
 
     except Exception as e:
-        print("Error reading DHT22 sensor:", e)
+        print("Error reading DHT11 sensor:", e)
     
         
     time.sleep(1)  # Update every 2 seconds
