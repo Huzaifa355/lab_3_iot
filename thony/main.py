@@ -1,92 +1,50 @@
-print("Hello, ESP32-S3!")
-
-from machine import Pin, I2C, Timer
-import machine
-import ssd1306 
-import dht
+import network
 import time
+import BlynkLib
+import dht
+from machine import Pin
 
-DHT_PIN = 4  # DHT22 data pin
-button = Pin(0, Pin.IN, Pin.PULL_UP)
-# Initialize DHT22 sensor
-dht_sensor = dht.DHT11(machine.Pin(DHT_PIN)) # change DHT11 fr physical device
+# WiFi Credentials
+WIFI_SSID = "Huzaifa"
+WIFI_PASS = "12345678"
 
-# Initialize OLED display
-i2c = machine.I2C(scl=machine.Pin(9), sda=machine.Pin(8))
-oled = ssd1306.SSD1306_I2C(128, 64, i2c)
+# Blynk Authentication Token
+BLYNK_AUTH = "VgWGfm_O0PIp6JtJE5SzgNor2nfDtsQi"
 
-pressed= False
-debounce_timer = None
+# Connect to WiFi
+wifi = network.WLAN(network.STA_IF)
+wifi.active(True)
+wifi.connect(WIFI_SSID, WIFI_PASS)
 
-def button_pressed(pin):
-    global  debounce_timer, pressed  # Declare variables as global
+print("Connecting to WiFi...", end="")
+while not wifi.isconnected():
+    time.sleep(1)
+    print(".", end="")
+print("\nWiFi connected!")
 
-    if debounce_timer is None:
-        pressed= not pressed
-        if pressed:
-            oled.poweroff()
-           
-        else:
-            oled.poweron()
-            
-            
+# Initialize Blynk
+blynk = BlynkLib.Blynk(BLYNK_AUTH)
 
-        # Start a timer for debounce period (e.g., 200 milliseconds)
-        debounce_timer = Timer(0)
-        debounce_timer.init(mode=Timer.ONE_SHOT, period=200, callback=debounce_callback)
+# Initialize DHT11 Sensor on GPIO 4
+dht_sensor = dht.DHT11(Pin(4))
 
-def debounce_callback(timer):
-    global debounce_timer
-    debounce_timer = None
-
-# Attach the interrupt to the button's rising edge
-button.irq(trigger=Pin.IRQ_FALLING, handler=button_pressed)
-
-
-
-
-
-# Main loop
-while True:
+# Function to Read and Send Data
+def send_sensor_data():
     try:
         dht_sensor.measure()
-        time.sleep(2)
-        temp = dht_sensor.temperature()
-        humidity = dht_sensor.humidity()
-        print(temp, humidity)
-        oled.fill(0)
-        oled.text("Temp: {} C".format(temp), 0, 0)
-        oled.text("Humidity: {}%".format(humidity), 0, 32)
-        oled.show()
-
-
-
-    except Exception as e:
-        print("Error reading DHT11 sensor:", e)
-    
+        temp = dht_sensor.temperature()  # Get Temperature
+        hum = dht_sensor.humidity()  # Get Humidity
         
-    time.sleep(1)  # Update every 2 seconds
+        print(f"Temperature: {temp}°C, Humidity: {hum}%")
+        
+        # Send Data to Blynk
+        blynk.virtual_write(0, temp)  # Send Temp to V0
+        blynk.virtual_write(1, hum)   # Send Hum to V1
+    except Exception as e:
+        print("Error reading sensor:", e)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# Run Blynk Loop
+while True:
+    blynk.run()
+    send_sensor_data()
+    time.sleep(5)  # Send data every 5 seconds
