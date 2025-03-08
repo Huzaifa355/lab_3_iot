@@ -6,84 +6,85 @@ import machine
 import ssd1306
 from machine import Pin, I2C
 
-# ---- USER SETTINGS ----
-WIFI_SSID = "Huzaifa"    
-WIFI_PASS = "12345678"        
-BLYNK_AUTH = "p17kdKvaFFK5kXxMnzGNtjPtXDrXP6Xq"    
+# ---- CONFIGURATION ----
+WIFI_CREDENTIALS = {"SSID": "Huzaifa", "PASSWORD": "12345678"}
+BLYNK_AUTH_TOKEN = "p17kdKvaFFK5kXxMnzGNtjPtXDrXP6Xq"
 
-NEOPIXEL_PIN = 48   # GPIO pin where NeoPixel is connected
-NUM_PIXELS = 1      # Number of NeoPixels
+# NeoPixel LED setup
+LED_PIN = 48
+LED_COUNT = 1
 
-# ---- CONNECT TO WIFI ----
-def connect_wifi():
+# ---- WIFI CONNECTION ----
+def establish_wifi():
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     if not wlan.isconnected():
-        print("Connecting to Wi-Fi:", WIFI_SSID)
-        wlan.connect(WIFI_SSID, WIFI_PASS)
+        print(f"Connecting to Wi-Fi: {WIFI_CREDENTIALS['SSID']}")
+        wlan.connect(WIFI_CREDENTIALS["SSID"], WIFI_CREDENTIALS["PASSWORD"])
         while not wlan.isconnected():
             time.sleep(1)
-    print("Connected to Wi-Fi! IP:", wlan.ifconfig()[0])
+    print("Wi-Fi Connected! IP Address:", wlan.ifconfig()[0])
 
-connect_wifi()
+establish_wifi()
 
-# ---- INITIALIZE BLYNK ----
-blynk = BlynkLib.Blynk(BLYNK_AUTH, server="blynk.cloud", port=80, insecure=True)
+# ---- INITIALIZING BLYNK ----
+blynk = BlynkLib.Blynk(BLYNK_AUTH_TOKEN, server="blynk.cloud", port=80, insecure=True)
+
 @blynk.on("connected")
-def blynk_connected():
+def on_blynk_connect():
     print("✅ Connected to Blynk!")
 
 @blynk.on("disconnected")
-def blynk_disconnected():
-    print("❌ Disconnected from Blynk!")
+def on_blynk_disconnect():
+    print("❌ Blynk Connection Lost!")
 
-# ---- INITIALIZE NEOPIXEL ----
-np = neopixel.NeoPixel(machine.Pin(NEOPIXEL_PIN), NUM_PIXELS)
+# ---- LED CONTROL ----
+np = neopixel.NeoPixel(machine.Pin(LED_PIN), LED_COUNT)
 
-# ---- SET NEOPIXEL COLOR ----
-def set_color(r, g, b):
-    np[0] = (r, g, b)
+def update_led_color(red, green, blue):
+    np[0] = (red, green, blue)
     np.write()
-    print(f"NeoPixel Color: R={r}, G={g}, B={b}")
+    print(f"LED Updated: R={red}, G={green}, B={blue}")
 
-# ---- CORRECTED HUE TO RGB CONVERSION ----
-def hsv_to_rgb(h):
-    """ Convert HSV (hue,100,100) to RGB (0-255) """
-    h = h / 255.0 * 360  # Convert to 0-360 range
-    X = (1 - abs((h / 60) % 2 - 1)) * 255  # Calculate X for RGB formula
+# ---- HUE TO RGB CONVERSION ----
+def hue_to_rgb(hue):
+    """ Converts a hue value (0-255) to RGB (0-255). """
+    hue = hue / 255.0 * 360
+    x = (1 - abs((hue / 60) % 2 - 1)) * 255
 
-    if 0 <= h < 60:
-        r, g, b = 255, X, 0
-    elif 60 <= h < 120:
-        r, g, b = X, 255, 0
-    elif 120 <= h < 180:
-        r, g, b = 0, 255, X
-    elif 180 <= h < 240:
-        r, g, b = 0, X, 255
-    elif 240 <= h < 300:
-        r, g, b = X, 0, 255
+    if 0 <= hue < 60:
+        r, g, b = 255, x, 0
+    elif 60 <= hue < 120:
+        r, g, b = x, 255, 0
+    elif 120 <= hue < 180:
+        r, g, b = 0, 255, x
+    elif 180 <= hue < 240:
+        r, g, b = 0, x, 255
+    elif 240 <= hue < 300:
+        r, g, b = x, 0, 255
     else:
-        r, g, b = 255, 0, X
+        r, g, b = 255, 0, x
 
     return int(r), int(g), int(b)
 
+# ---- OLED SETUP ----
 i2c = I2C(0, scl=Pin(9), sda=Pin(8))
 oled = ssd1306.SSD1306_I2C(128, 64, i2c)
-# Clear display
 oled.fill(0)
 
-# ---- BLYNK VIRTUAL WRITE HANDLER (V1 for Gauge) ----
+# ---- BLYNK INPUT HANDLER (V1) ----
 @blynk.on("V1")
-def v1_handler(value):
+def handle_v1(value):
     try:
-        hue = int(value[0])  # Convert Blynk input to integer
-        print(f"Recived Hue: {hue}")
-        oled.text(f"Hue: {hue}",10,24)
+        hue_value = int(value[0])
+        print(f"Received Hue: {hue_value}")
+        oled.fill(0)
+        oled.text(f"Hue: {hue_value}", 10, 24)
         oled.show()
-        r, g, b = hsv_to_rgb(hue)  # Convert HSV to RGB
-        set_color(r, g, b)  # Update LED
-    except:
-        pass
+        red, green, blue = hue_to_rgb(hue_value)
+        update_led_color(red, green, blue)
+    except Exception as e:
+        print("Error processing hue input:", e)
 
 # ---- MAIN LOOP ----
 while True:
