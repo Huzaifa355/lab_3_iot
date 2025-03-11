@@ -152,3 +152,36 @@ def web_page():
     </body>
     </html>"""
     return html
+
+while True:
+    conn, addr = s.accept()
+    print("Connection from:", addr)
+    request = conn.recv(1024).decode()
+    print("Request:", request)
+    
+    
+     # RGB Color Control
+    if "/?r=" in request and "&g=" in request and "&b=" in request:
+        try:
+            parts = request.split("/?")[1].split(" ")[0]  
+            params = {kv.split("=")[0]: kv.split("=")[1] for kv in parts.split("&")}
+            r, g, b = min(255, max(0, int(params["r"]))), min(255, max(0, int(params["g"]))), min(255, max(0, int(params["b"])))
+            neo[0] = (r, g, b)
+            neo.write()
+        except:
+            print("Invalid RGB Input")
+
+    # OLED Message Display
+    elif "/?msg=" in request:
+        try:
+            msg = request.split("/?msg=")[1].split(" ")[0]
+            msg = msg.replace("%20", " ")
+            display_message_on_oled(msg)
+        except:
+            print("Invalid OLED Message")
+
+    response = web_page()
+    conn.send("HTTP/1.1 200 OK\nContent-Type: text/html\n\n" + response)
+    conn.close()
+
+    
