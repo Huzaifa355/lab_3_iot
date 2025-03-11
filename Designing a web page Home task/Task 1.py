@@ -36,3 +36,8 @@ ap = network.WLAN(network.AP_IF)
 ap.active(True)
 ap.config(essid="ESP32-AP", password="12345678")
 print("AP Mode IP:", ap.ifconfig()[0])
+#socket programing
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Allows rebinding
+s.bind(("0.0.0.0", 80))
+s.listen(5)
