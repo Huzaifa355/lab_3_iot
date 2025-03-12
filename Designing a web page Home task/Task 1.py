@@ -19,8 +19,8 @@ i2c = SoftI2C(scl=Pin(9), sda=Pin(8))  # Adjust based on wiring
 oled = SSD1306_I2C(128, 64, i2c)
 
 # Wi-Fi Configuration (STA Mode)
-ssid = "NTU FSD"
-#password = "12345676"
+ssid = "Dhanju"
+password = "Huzaifa3550"
 sta = network.WLAN(network.STA_IF)
 sta.active(True)
 sta.connect(ssid)
