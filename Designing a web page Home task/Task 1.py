@@ -17,6 +17,18 @@ sensor = dht.DHT11(dht_pin)
 # OLED Display Setup
 i2c = SoftI2C(scl=Pin(9), sda=Pin(8))  # Adjust based on wiring
 oled = SSD1306_I2C(128, 64, i2c)
+# Scan Available WiFi Networks
+def scan_wifi():
+    wlan = network.WLAN(network.STA_IF)
+    wlan.active(True)
+    print("Scanning for WiFi networks...")
+    networks = wlan.scan()
+    for net in networks:
+        ssid = net[0].decode()
+        rssi = net[3]
+        print(f"SSID: {ssid}, Signal: {rssi} dBm")
+
+scan_wifi()  # Scan before connecting
 
 # Wi-Fi Configuration (STA Mode)
 ssid = "Dhanju"
