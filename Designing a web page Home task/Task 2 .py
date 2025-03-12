@@ -75,3 +75,60 @@ wlan.connect(SSID, PASSWORD)
 while not wlan.isconnected():
     time.sleep(1)
 print("WiFi Connected! IP:", wlan.ifconfig()[0])
+
+# Start Socket-Based Web Server
+def start_server():
+    addr = ("", 80)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Allow address reuse
+    s.bind(addr)
+    s.listen(5)
+    print("Server is running...")
+    
+    while True:
+        conn, addr = s.accept()
+        print("Connection from:", addr)
+        request = conn.recv(1024).decode()
+        print("Request:", request)
+        
+        if "/data" in request:
+            temp, hum = read_sensor()
+            alert = get_alert_message(temp, hum)
+            response = f'{{"temperature": {temp}, "humidity": {hum}, "alert": "{alert}"}}'
+            conn.send("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n" + response)
+        else:
+            html_response = """\
+HTTP/1.1 200 OK
+Content-Type: text/html
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ESP32-S3 IoT Weather Station</title>
+    <script>
+        async function updateData() {
+            let response = await fetch('/data');
+            let data = await response.json();
+            document.getElementById('temp').innerText = data.temperature + '°C';
+            document.getElementById('humidity').innerText = data.humidity + '%';
+            document.getElementById('alert').innerText = data.alert;
+        }
+        setInterval(updateData, 2000);
+    </script>
+</head>
+<body>
+    <h2>ESP32-S3 IoT Weather Station</h2>
+    <p>Temperature: <span id='temp'>--</span></p>
+    <p>Humidity: <span id='humidity'>--</span></p>
+    <p><strong>Alert: <span id='alert'>--</span></strong></p>
+</body>
+</html>
+"""
+            conn.send(html_response)
+        
+        conn.close()
+
+# Run the Web Server and Display Update in Parallel
+import _thread
+_thread.start_new_thread(update_display_loop, ())  # Start display update thread
+start_server()  # Start web server
