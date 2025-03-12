@@ -4,6 +4,7 @@ import time
 import dht
 import ssd1306
 import socket
+import _thread
 
 # WiFi Credentials
 SSID = "Dhanju"
@@ -26,7 +27,8 @@ def read_sensor():
         return temp, hum
     except:
         return None, None
-    # Function to Determine Alert Message
+
+# Function to Determine Alert Message
 def get_alert_message(temp, hum):
     if temp is not None and hum is not None:
         if temp > 30:
@@ -72,9 +74,18 @@ scan_wifi()  # Scan before connecting
 wlan = network.WLAN(network.STA_IF)
 wlan.active(True)
 wlan.connect(SSID, PASSWORD)
-while not wlan.isconnected():
+
+print("Connecting to WiFi...")
+timeout = 10  # 10-second timeout
+while not wlan.isconnected() and timeout > 0:
     time.sleep(1)
-print("WiFi Connected! IP:", wlan.ifconfig()[0])
+    timeout -= 1
+
+if wlan.isconnected():
+    print("WiFi Connected! IP:", wlan.ifconfig()[0])
+else:
+    print("WiFi connection failed!")
+    raise OSError("Failed to connect to WiFi")
 
 # Start Socket-Based Web Server
 def start_server():
@@ -84,27 +95,58 @@ def start_server():
     s.bind(addr)
     s.listen(5)
     print("Server is running...")
-    
+
     while True:
         conn, addr = s.accept()
         print("Connection from:", addr)
         request = conn.recv(1024).decode()
         print("Request:", request)
-        
+
         if "/data" in request:
             temp, hum = read_sensor()
             alert = get_alert_message(temp, hum)
             response = f'{{"temperature": {temp}, "humidity": {hum}, "alert": "{alert}"}}'
-            conn.send("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n" + response)
+            conn.send("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n".encode() + response.encode())
         else:
             html_response = """\
 HTTP/1.1 200 OK
 Content-Type: text/html
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ESP32-S3 IoT Weather Station</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #89f7fe, #66a6ff);
+            color: #fff;
+            padding: 20px;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        h2 {
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 20px;
+            margin: 10px 0;
+        }
+        .alert {
+            font-weight: bold;
+            font-size: 18px;
+            color: yellow;
+        }
+    </style>
     <script>
         async function updateData() {
             let response = await fetch('/data');
@@ -117,18 +159,19 @@ Content-Type: text/html
     </script>
 </head>
 <body>
-    <h2>ESP32-S3 IoT Weather Station</h2>
-    <p>Temperature: <span id='temp'>--</span></p>
-    <p>Humidity: <span id='humidity'>--</span></p>
-    <p><strong>Alert: <span id='alert'>--</span></strong></p>
+    <div class="container">
+        <h2>ESP32-S3 IoT Weather Station 🌤️</h2>
+        <p>🌡️ Temperature: <span id='temp'>--</span></p>
+        <p>💧 Humidity: <span id='humidity'>--</span></p>
+        <p class="alert">⚠️ Alert: <span id='alert'>--</span></p>
+    </div>
 </body>
 </html>
 """
-            conn.send(html_response)
+            conn.send(html_response.encode())  # Convert to bytes before sending
         
         conn.close()
 
 # Run the Web Server and Display Update in Parallel
-import _thread
 _thread.start_new_thread(update_display_loop, ())  # Start display update thread
 start_server()  # Start web server
