@@ -8,7 +8,7 @@ import _thread
 
 # WiFi Credentials
 SSID = "Dhanju"
-PASSWORD = "Huzaifa3550"
+PASSWORD = "Huzaifa355"
 
 # Initialize OLED Display
 i2c = I2C(0, scl=Pin(9), sda=Pin(8))
@@ -57,10 +57,11 @@ def update_display_loop():
         
         time.sleep(2)  # Update every 2 seconds
 
+wlan = network.WLAN(network.STA_IF)
+wlan.active(True)
+
 # Scan Available WiFi Networks
 def scan_wifi():
-    wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)
     print("Scanning for WiFi networks...")
     networks = wlan.scan()
     for net in networks:
@@ -71,10 +72,7 @@ def scan_wifi():
 scan_wifi()  # Scan before connecting
 
 # Connect to WiFi
-wlan = network.WLAN(network.STA_IF)
-wlan.active(True)
 wlan.connect(SSID, PASSWORD)
-
 print("Connecting to WiFi...")
 timeout = 10  # 10-second timeout
 while not wlan.isconnected() and timeout > 0:
@@ -86,6 +84,12 @@ if wlan.isconnected():
 else:
     print("WiFi connection failed!")
     raise OSError("Failed to connect to WiFi")
+
+# AP Mode Configuration
+ap = network.WLAN(network.AP_IF)
+ap.active(True)
+ap.config(essid="ESP32-AP", password="12345678")
+print("AP Mode IP:", ap.ifconfig()[0])
 
 # Start Socket-Based Web Server
 def start_server():
@@ -108,7 +112,7 @@ def start_server():
             response = f'{{"temperature": {temp}, "humidity": {hum}, "alert": "{alert}"}}'
             conn.send("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n".encode() + response.encode())
         else:
-            html_response = """\
+            html_response = """
 HTTP/1.1 200 OK
 Content-Type: text/html
 
