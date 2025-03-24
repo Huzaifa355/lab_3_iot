@@ -7,8 +7,8 @@ import socket
 import _thread
 
 # WiFi Credentials
-SSID = "Dhanju"
-PASSWORD = "Huzaifa355"
+SSID = "wifi name"
+PASSWORD = "password"
 
 # Initialize OLED Display
 i2c = I2C(0, scl=Pin(9), sda=Pin(8))

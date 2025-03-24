@@ -25,8 +25,8 @@ oled = SSD1306_I2C(128, 64, i2c)
 # Wi-Fi Configuration
 # -----------------------------
 # STA Mode (Connect to an existing network)
-ssid = "Dhanju"
-password = "Huzaifa355"
+ssid = "wifi name "
+password = "passowrd"
 sta = network.WLAN(network.STA_IF)
 sta.active(False)
 sta.active(True)
