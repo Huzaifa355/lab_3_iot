@@ -7,8 +7,8 @@ import socket
 import _thread
 
 # WiFi Credentials
-SSID = "wifi name"
-PASSWORD = "password"
+SSID = "Pi"
+PASSWORD = "12345679"
 
 # Initialize OLED Display
 i2c = I2C(0, scl=Pin(9), sda=Pin(8))
@@ -58,6 +58,7 @@ def update_display_loop():
         time.sleep(2)  # Update every 2 seconds
 
 wlan = network.WLAN(network.STA_IF)
+wlan.active(False)
 wlan.active(True)
 
 # Scan Available WiFi Networks
@@ -79,6 +80,7 @@ while not wlan.isconnected() and timeout > 0:
     time.sleep(1)
     timeout -= 1
 
+
 if wlan.isconnected():
     print("WiFi Connected! IP:", wlan.ifconfig()[0])
 else:
@@ -87,6 +89,7 @@ else:
 
 # AP Mode Configuration
 ap = network.WLAN(network.AP_IF)
+ap.active(False)
 ap.active(True)
 ap.config(essid="ESP32-AP", password="12345678")
 print("AP Mode IP:", ap.ifconfig()[0])

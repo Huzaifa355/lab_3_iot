@@ -25,8 +25,8 @@ oled = SSD1306_I2C(128, 64, i2c)
 # Wi-Fi Configuration
 # -----------------------------
 # STA Mode (Connect to an existing network)
-ssid = "wifi name "
-password = "passowrd"
+ssid = "Pi"
+password = "12345679"
 sta = network.WLAN(network.STA_IF)
 sta.active(False)
 sta.active(True)
@@ -39,6 +39,7 @@ print("Connected to Wi-Fi! IP:", sta.ifconfig()[0])
 
 # AP Mode (Access Point for direct connection)
 ap = network.WLAN(network.AP_IF)
+ap.active(False)
 ap.active(True)
 ap.config(essid="ESP32-AP", password="12345678")
 print("AP Mode IP:", ap.ifconfig()[0])
@@ -87,7 +88,7 @@ def display_message_on_oled(msg):
     oled.show()
 
 def web_page():
-    """Generates the HTML webpage with enhanced CSS."""
+    """Html page"""
     try:
         sensor.measure()
         temp = sensor.temperature()
